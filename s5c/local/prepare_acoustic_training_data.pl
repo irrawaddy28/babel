@@ -167,6 +167,7 @@ if (-d $TranscriptionDir) {
             while ($line=<TRANSCRIPT>) {
                 chomp $line;
                 if ($line =~ m:^\s*\[([0-9]+\.*[0-9]*)\]\s*$:) {
+					# this is a line containing time stamp
                     $thisTimeMark = $1;
                     if ($thisTimeMark < $prevTimeMark) {
                       print STDERR ("$0 ERROR: Found segment with negative duration in $filename\n");
@@ -207,6 +208,7 @@ if (-d $TranscriptionDir) {
                         # Output information to STDOUT to enable > /dev/null
                         print STDOUT ("$0: Skipping empty transcription $utteranceID\n");
                     } else {
+						# save start and end times, transcription, and spkrID
                         $transcription{$utteranceID} = $text;
                         $startTime{$utteranceID} = $prevTimeMark;
                         $endTime{$utteranceID} = $thisTimeMark;
@@ -222,75 +224,77 @@ if (-d $TranscriptionDir) {
                         $text = "";
                     }
                     $prevTimeMark = $thisTimeMark;
-                } else {
-		    @tokens = split(/\s+/, $line);
-		    $text = "";
-		    while ($w = shift(@tokens)) {
-			# First, some Babel-specific transcription filtering
-			if (($w eq "<sta>")||($w eq "<male-to-female>")||($w eq "<female-to-male>")||($w eq "~")) {
-			    next;
-			} elsif (($w eq "<lipsmack>")||($w eq "<breath>")||($w eq "<cough>")||($w eq "<laugh>")) {
-			    $text .= " $vocalNoise";
-			    $numWords++;
-			} elsif (($w eq "<click>")||($w eq "<ring>")||($w eq "<dtmf>")||($w eq "<int>")){
-			    $text .= " $nVoclNoise";
-			    $numWords++;
-			} elsif (($w eq "(())")||($w eq "<foreign>")||($w eq "<overlap>")||($w eq "<prompt>")) {
-			    $text .= " $OOV_symbol";
-			    $oovCount{$w}++;
-			    $numOOV++;
-			    $numWords++;
-			} elsif ($w eq "<no-speech>") {
-			    $text .= " $silence";
-			    $numSilence++;
-			} else {
-			    # This is a just regular spoken word
-			    if ($vocabFile && (! $inVocab{$w}) && $fragMarkers) {
-            print "Not in vocab: $w\n";
-				# $w is a potential OOV token
-				# Remove fragMarkers to see if $w becomes in-vocabulary
-				while ($w =~ m:^(\S+[$fragMarkers]|[$fragMarkers]\S+)$:) {
-				    if ($w =~ m:^(\S+)[$fragMarkers]$:) {
-					$w = $1;
-					last if ($inVocab{$w});
-				    } elsif ($w =~m:^[$fragMarkers](\S+)$:) {
-					$w = $1;
-					last if ($inVocab{$w});
-				    } else {
-					die "Logically, the program should never reach here!";
-				    }
-				}
-			    }
-			    # If still an OOV, replace $w by $OOV_symbol
-			    if ($vocabFile && (! $inVocab{$w})) {
-				# $w is definitely an OOV token
-				if (exists $oovCount{$w}) {
-				    $oovCount{$w}++;
-				} else {
-				    $oovCount{$w} = 1;
-				}
-				$w = $OOV_symbol;
-				$numOOV++;
-			    }
-			    $text .= " $w";
-			    $numWords++;
-			}
-		    }
-		    $text =~ s:^\s+::; # Remove leading white space, if any
-        # Transcriptions must contain real words to be useful in training
-        if ($get_whole_transcripts ne "true") {
-          $text =~ s:^(($OOV_symbol|$vocalNoise|$nVoclNoise|$silence)[ ]{0,1})+$::;
-        }
-		}
-	    }
-            close(TRANSCRIPTION);
+                } else { # this is a line containing text
+					@tokens = split(/\s+/, $line);
+					$text = "";
+					while ($w = shift(@tokens)) {
+						# First, some Babel-specific transcription filtering
+						if (($w eq "<sta>")||($w eq "<male-to-female>")||($w eq "<female-to-male>")||($w eq "~")) {
+							next;
+						} elsif (($w eq "<lipsmack>")||($w eq "<breath>")||($w eq "<cough>")||($w eq "<laugh>")) {
+							$text .= " $vocalNoise";
+							$numWords++;
+						} elsif (($w eq "<click>")||($w eq "<ring>")||($w eq "<dtmf>")||($w eq "<int>")){
+							$text .= " $nVoclNoise";
+							$numWords++;
+						} elsif (($w eq "(())")||($w eq "<foreign>")||($w eq "<overlap>")||($w eq "<prompt>")) {
+							$text .= " $OOV_symbol";
+							$oovCount{$w}++;
+							$numOOV++;
+							$numWords++;
+						} elsif ($w eq "<no-speech>") {
+							$text .= " $silence";
+							$numSilence++;
+						} else {
+							# This is a just regular spoken word
+							if ($vocabFile && (! $inVocab{$w}) && $fragMarkers) {
+								# Leading or trailing fragment symbols around the word make it look like an OOV. 
+								# Remove fragment symbols and check if the word is an in-vocabulary word.
+								print "Not in vocab: $w\n";
+								# $w is a potential OOV token
+								# Remove fragMarkers to see if $w becomes in-vocabulary
+								while ($w =~ m:^(\S+[$fragMarkers]|[$fragMarkers]\S+)$:) {
+									if ($w =~ m:^(\S+)[$fragMarkers]$:) {
+									$w = $1;
+									last if ($inVocab{$w});
+									} elsif ($w =~m:^[$fragMarkers](\S+)$:) {
+									$w = $1;
+									last if ($inVocab{$w});
+									} else {
+									die "Logically, the program should never reach here!";
+									}
+								}
+							}
+							# If still an OOV, replace $w by $OOV_symbol
+							if ($vocabFile && (! $inVocab{$w})) {
+								# $w is definitely an OOV token
+								if (exists $oovCount{$w}) {
+									$oovCount{$w}++;
+								} else {
+									$oovCount{$w} = 1;
+								}
+								$w = $OOV_symbol;
+								$numOOV++;
+							}
+							$text .= " $w";
+							$numWords++;
+						}
+					} # end processing all tokens in this line. Now we should have $text ready.
+					$text =~ s:^\s+::; # Remove leading white space, if any
+					# Transcriptions must contain real words to be useful in training
+					if ($get_whole_transcripts ne "true") {
+						$text =~ s:^(($OOV_symbol|$vocalNoise|$nVoclNoise|$silence)[ ]{0,1})+$::;
+					}
+				} # end processing this line containing either text or time stamp
+			} # end processing all lines in this transcription
+            close(TRANSCRIPT);
             if ($numUtterancesThisFile>0) {
                 $lastTimeMarkInFile{$fileID} = $prevTimeMark;
                 $numUtterancesInFile{$fileID} = $numUtterancesThisFile;
                 $numUtterancesThisFile = 0;
             }
             $numFiles++;
-        }
+        } # end processing all transcriptions in this dir
         print STDERR ("$0: Recorded $numUtterances non-empty utterances from $numFiles files\n");
     } else {
         print STDERR ("$0 ERROR: No .txt files found $TranscriptionDir\n");

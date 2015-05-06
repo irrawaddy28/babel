@@ -16,7 +16,7 @@ skip_scoring=false
 max_states=150000
 extra_kws=true
 vocab_kws=false
-tri5_only=false
+tri5_only=true
 wip=0.5
 
 echo "run-4-test.sh $@"

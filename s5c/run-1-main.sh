@@ -5,8 +5,14 @@ tri5_only=false
 sgmm5_only=false
 data_only=false
 
+langconf="conf/lang/103-bengali-limitedLP.official.conf"
+[[ -f $langconf ]] && cp $langconf ./lang.conf
+
 [ ! -f ./lang.conf ] && echo 'Language configuration does not exist! Use the configurations in conf/lang/* as a startup' && exit 1
 [ ! -f ./conf/common_vars.sh ] && echo 'the file conf/common_vars.sh does not exist!' && exit 1
+
+[[ -f path.sh ]] && . ./path.sh
+sed -i.bak "s:/export/:${corpus_dir}/:g" lang.conf
 
 . conf/common_vars.sh || exit 1;
 . ./lang.conf || exit 1;
@@ -37,6 +43,7 @@ if [[ "$nj_max" -lt "$train_nj" ]] ; then
     train_nj=$nj_max
 fi
 train_data_dir=`readlink -f ./data/raw_train_data`
+echo "train_data_dir = $train_data_dir"
 
 if [ ! -d data/raw_dev2h_data ]; then
   echo ---------------------------------------------------------------------
@@ -63,7 +70,7 @@ mkdir -p data/local
 if [[ ! -f data/local/lexicon.txt || data/local/lexicon.txt -ot "$lexicon_file" ]]; then
   echo ---------------------------------------------------------------------
   echo "Preparing lexicon in data/local on" `date`
-  echo ---------------------------------------------------------------------
+  echo ---------------------------------------------------------------------  
   local/make_lexicon_subset.sh $train_data_dir/transcription $lexicon_file data/local/filtered_lexicon.txt
   local/prepare_lexicon.pl  --phonemap "$phoneme_mapping" \
     $lexiconFlags data/local/filtered_lexicon.txt data/local
@@ -86,7 +93,7 @@ if [[ ! -f data/train/wav.scp || data/train/wav.scp -ot "$train_data_dir" ]]; th
   mkdir -p data/train
   local/prepare_acoustic_training_data.pl \
     --vocab data/local/lexicon.txt --fragmentMarkers \-\*\~ \
-    $train_data_dir data/train > data/train/skipped_utts.log
+    $train_data_dir data/train > data/train/skipped_utts.log  
 fi
 
 if [[ ! -f data/dev2h/wav.scp || data/dev2h/wav.scp -ot ./data/raw_dev2h_data/audio ]]; then
@@ -107,7 +114,7 @@ if [[ ! -f data/dev2h/glm || data/dev2h/glm -ot "$glmFile" ]]; then
     echo "WARNING: You should define the variable stm_file pointing to the IndusDB stm"
     echo "WARNING: Doing that, it will give you scoring close to the NIST scoring.    "
     local/prepare_stm.pl --fragmentMarkers \-\*\~ data/dev2h || exit 1
-  else
+  else	
     local/augment_original_stm.pl $dev2h_stm_file data/dev2h || exit 1
   fi
   [ ! -z $glmFile ] && cp $glmFile data/dev2h/glm
@@ -248,7 +255,7 @@ if [ ! -f exp/tri5/.done ]; then
     $numLeavesSAT $numGaussSAT data/train data/lang exp/tri4_ali exp/tri5
   touch exp/tri5/.done
 fi
-
+exit 1;
 
 ################################################################################
 # Ready to start SGMM training

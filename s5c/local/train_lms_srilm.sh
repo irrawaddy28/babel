@@ -56,7 +56,8 @@ if (($?)); then
   exit 1
 else
   # wc vocab # doesn't work due to some encoding issues
-  echo vocab contains `cat $tgtdir/vocab | perl -ne 'BEGIN{$l=$w=0;}{split; $w+=$#_; $w++; $l++;}END{print "$l lines, $w words\n";}'`
+  # echo vocab contains `cat $tgtdir/vocab | perl -ne 'BEGIN{$l=$w=0;}{split; $w+=$#_; $w++; $l++;}END{print "$l lines, $w words\n";}'`
+  echo vocab contains `cat $tgtdir/vocab | perl -ane '{$w += @F; $l++} END {print "$l lines, $w words\n";}'`
 fi
 
 # Kaldi transcript files contain Utterance_ID as the first word; remove it
@@ -67,8 +68,10 @@ if (($?)); then
 else
     echo "Removed first word (uid) from every line of $train_text"
     # wc text.train train.txt # doesn't work due to some encoding issues
-    echo $train_text contains `cat $train_text | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`
-    echo train.txt contains `cat $tgtdir/train.txt | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`
+    # echo $train_text contains `cat $train_text | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`
+    # echo train.txt contains `cat $tgtdir/train.txt | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`    
+    echo $train_text contains `cat $train_text | perl -ane '{$w += @F; $s++;} END{print "$w words, $s sentences\n";}'`
+    echo train.txt contains `cat $tgtdir/train.txt | perl -ane '{$w += @F; $s++;} END{print "$w words, $s sentences\n";}'`
 fi
 
 # Kaldi transcript files contain Utterance_ID as the first word; remove it
@@ -79,8 +82,10 @@ if (($?)); then
 else
     echo "Removed first word (uid) from every line of $dev_text"
     # wc text.train train.txt # doesn't work due to some encoding issues
-    echo $train_text contains `cat $dev_text | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`
-    echo $tgtdir/dev.txt contains `cat $tgtdir/dev.txt | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`
+    # echo $train_text contains `cat $dev_text | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`
+    # echo $tgtdir/dev.txt contains `cat $tgtdir/dev.txt | perl -ne 'BEGIN{$w=$s=0;}{split; $w+=$#_; $w++; $s++;}END{print "$w words, $s sentences\n";}'`
+    echo $dev_text contains `cat $dev_text | perl -ane '{ $w += @F; $s++;} END{print "$w words, $s sentences\n";}'`
+    echo $tgtdir/dev.txt contains `cat $tgtdir/dev.txt | perl -ane '{$w += @F; $s++;} END{print "$w words, $s sentences\n";}'`
 fi
 
 echo "-------------------"
