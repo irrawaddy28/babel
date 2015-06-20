@@ -106,21 +106,22 @@ $exqFile = "$outDir/extra_questions.txt";
 #The phonemap is in the form of "ph1=a b c;ph2=a f g;...."
 %phonemap_hash;
 if ($phonemap) {
-  $phonemap=join(" ", split(/\s+/, $phonemap));
+  $phonemap=join(" ", split(/\s+/, $phonemap));  
   print $phonemap . "\n";
-  @phone_map_instances=split(/;/, $phonemap);
+  @phone_map_instances=split(/;/, $phonemap);  
   foreach $instance (@phone_map_instances) {
     ($phoneme, $tgt) = split(/=/, $instance);
     $phoneme =~ s/^\s+|\s+$//g;
     $tgt =~ s/^\s+|\s+$//g;
     #print "$phoneme=>$tgt\n";
     @tgtseq=split(/\s+/,$tgt);
+    #print STDERR "src phn = $phoneme, tgt phn = @tgtseq\n";
     $phonemap_hash{$phoneme} = [];
     push @{$phonemap_hash{$phoneme}}, @tgtseq;
   }
 }
 
-#print Dumper(\%phonemap_hash);
+# print Dumper(\%phonemap_hash);
 
 ###############################################################################
 # Read input lexicon, write output lexicon, and save the set of phones & tags.

@@ -9,11 +9,16 @@ ignore_missing_txt=false  #If the reference transcript txt is missing, \
 #End configuration
 echo "$0 $@"  # Print the command line for logging
 
-help_message="$0: create subset of the input directory (specified as the first directory).
-                 The subset is specified by the second parameter.
+help_message="$0: create a subset of the corpus present in the input directory (specified as the first directory).
+                 The subset list is specified by the second parameter.
                  The directory in which the subset should be created is the third parameter
              Example:
-                 $0 <source-corpus-dir> <subset-descriptor-list-file> <target-corpus-subset-dir>"
+                 $0 <source-corpus-dir> <subset-descriptor-list-file> <target-corpus-subset-dir>
+             Example (use multiple pairs):
+                 $0 <source-corpus-dir-1> <subset-descriptor-list-file-1> 
+                    <source-corpus-dir-2> <subset-descriptor-list-file-2> 
+                    ...
+                    <source-corpus-dir-N> <subset-descriptor-list-file-N> <target-corpus-subset-dir>"    
 
 [ -f ./path.sh ] && . ./path.sh; # source the path.
 . parse_options.sh || exit 1;

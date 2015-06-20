@@ -72,7 +72,8 @@ use Getopt::Long;
 #         <prompt>     designates a sequence of pre-recorded words
 #         <overlap>    designates two simultaneous foreground speakers
 #
-#     This script maps them to OOV.  They are not included in oovCounts
+#     This script maps them to OOV.  They are not included in oovCounts. 
+# 	  < ad: These words do get included in oovCounts. See data/train/oovCounts file. >
 #
 #  -  Babel transcriptions also contain a few non-linguistics tokens
 #
@@ -88,6 +89,8 @@ use Getopt::Long;
 #
 #         <no-speech>  designates silence > 1 sec.
 #
+#  ad : Note that the symbols you assign to $vocalNoise, $nVoclNoise, $silence
+#       should be defined in the lexicon. These symbols are not OOVs.
       $vocalNoise = "<v-noise>";
       $nVoclNoise = "<noise>";
       $silence    = "<silence>";
@@ -124,7 +127,7 @@ if ($#ARGV == 1) {
 }
 
 ########################################################################
-# Read and save the vocabulary and map anything not in the vocab <unk>
+# Read and save the vocabulary and map anything not in the vocab to <unk>
 ########################################################################
 
 if ($vocabFile) {
@@ -155,7 +158,7 @@ if (-d $TranscriptionDir) {
             $fileID =~ s:.+/::;       # remove path prefix
             $fileID =~ s:\.txt\s*$::; # remove file extension
             # For each transcription file, extract and save segmentation data
-            $numUtterancesThisFile = 0;
+            $numUtterancesThisFile = 0; # var storing number of segmentations in the current file
             $prevTimeMark = -1.0;
             $text = "";
             if ( $icu_transform ) {
@@ -166,8 +169,7 @@ if (-d $TranscriptionDir) {
             open (TRANSCRIPT, $inputspec) || die "Unable to open $filename";
             while ($line=<TRANSCRIPT>) {
                 chomp $line;
-                if ($line =~ m:^\s*\[([0-9]+\.*[0-9]*)\]\s*$:) {
-					# this is a line containing time stamp
+                if ($line =~ m:^\s*\[([0-9]+\.*[0-9]*)\]\s*$:) { # this is a line with time stamp. e.g. "[12.36]"
                     $thisTimeMark = $1;
                     if ($thisTimeMark < $prevTimeMark) {
                       print STDERR ("$0 ERROR: Found segment with negative duration in $filename\n");
@@ -187,7 +189,10 @@ if (-d $TranscriptionDir) {
                     #    -  Remove prefix: program_phase_language
                     #    -  inLine = scripted = spkr A, outLine = B
                     #    -  Move A/B so that utteranceIDs sort by spkr
-                    #    -  Assume utterance start time < 10000 sec.
+                    #    -  Assume start time of any utterance is < 10000 sec.
+                    # E.g. If fileID = BABEL_BP_101_11694_20111204_205320_inLine, 
+                    # then, utteranceID = 11694_A_20111204_205320_<start time>
+                    #       spkearID = 11694_A 
                     ##################################################
                     $utteranceID =  $fileID;
                     $utteranceID =~ s:[^_]+_[^_]+_[^_]+_::;
@@ -218,13 +223,13 @@ if (-d $TranscriptionDir) {
                             # default: one speaker per audio file
                             $speakerID{$utteranceID} = $fileID;
                         }
-                        $baseFileID{$utteranceID} = $fileID;
+                        $baseFileID{$utteranceID} = $fileID;  # save the recording id for this utterance id
                         $numUtterancesThisFile++;
                         $numUtterances++;
                         $text = "";
                     }
                     $prevTimeMark = $thisTimeMark;
-                } else { # this is a line containing text
+                } else { # this is a line with text. e.g. "喂 <no-speech> 哦 你- 你- 你"
 					@tokens = split(/\s+/, $line);
 					$text = "";
 					while ($w = shift(@tokens)) {

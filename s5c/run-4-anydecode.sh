@@ -1,4 +1,6 @@
 #!/bin/bash 
+# > ./run-4-anydecode.sh --skip-kws true --tri5-only true --dir dev10h.uem
+# > local/score.sh --cmd "run.pl" data/dev10h.uem exp/tri5/graph exp/tri5/decode_dev10h.uem
 set -e
 set -o pipefail
 
@@ -10,11 +12,11 @@ dir=dev10h.pem
 kind=
 data_only=false
 fast_path=true
-skip_kws=false
-skip_stt=false
+skip_kws=false  # true
+skip_stt=false  # true
 skip_scoring=false
 max_states=150000
-extra_kws=true
+extra_kws=true  # false
 vocab_kws=false
 tri5_only=true
 wip=0.5
@@ -142,6 +144,14 @@ function check_variables_are_set {
     done
   fi
 }
+echo "dataset_segments = $dataset_segments"
+echo "dataset_dir = $dataset_dir"
+echo "dataset_id = $dataset_id"
+echo "dataset_type = $dataset_type"
+echo "dataset_kind = $dataset_kind"
+echo "my_data_dir = $my_data_dir"
+echo "my_data_list = $my_data_list"
+echo "my_nj = $my_nj"
 
 if [ ! -f data/raw_${dataset_type}_data/.done ]; then
   echo ---------------------------------------------------------------------
@@ -162,8 +172,8 @@ if [ ! -f data/raw_${dataset_type}_data/.done ]; then
 
   for i in `seq 0 $(($l1 - 1))`; do
     resource_string+=" ${my_data_dir[$i]} "
-    resource_string+=" ${my_data_list[$i]} "
-  done
+    resource_string+=" ${my_data_list[$i]} "    
+  done  
   local/make_corpus_subset.sh $resource_string ./data/raw_${dataset_type}_data
   touch data/raw_${dataset_type}_data/.done
 fi

@@ -1,11 +1,26 @@
 #!/bin/bash
-
+# E.g.: > ./run-1-main.sh --tri5-only "true" conf/lang/101-cantonese-limitedLP.official.conf
 # This is not necessarily the top-level run.sh as it is in other directories.   see README.txt first.
+# Base period (BP) languages: Pashto, Turkish, Tagalog, Cantonese, Vietnamese
+# Optional Period One (OP1) languages: Haitian, Lao, Zulu, Assamese, Bengali, Tamil
+
 tri5_only=false
 sgmm5_only=false
 data_only=false
 
-langconf="conf/lang/103-bengali-limitedLP.official.conf"
+# bengali: "conf/lang/103-bengali-limitedLP.official.conf"
+# assamese: "conf/lang/102-assamese-limitedLP.official.conf"
+# cantonese: "conf/lang/101-cantonese-limitedLP.official.conf"
+# pashto: "conf/lang/104-pashto-limitedLP.official.conf"
+# tagalog: "conf/lang/106-tagalog-limitedLP.official.conf"
+# turkish: "conf/lang/105-turkish-limitedLP.official.conf"
+# vietnamese: "conf/lang/107-vietnamese-limitedLP.official.conf"
+# haitian: "conf/lang/201-haitian-limitedLP.official.conf"
+# lao: "conf/lang/203-lao-limitedLP.official.conf"
+# zulu: "conf/lang/206-zulu-limitedLP.official.conf"
+# tamil: "conf/lang/204-tamil-limitedLP.official.conf"
+langconf=$3
+
 [[ -f $langconf ]] && cp $langconf ./lang.conf
 
 [ ! -f ./lang.conf ] && echo 'Language configuration does not exist! Use the configurations in conf/lang/* as a startup' && exit 1
@@ -72,6 +87,8 @@ if [[ ! -f data/local/lexicon.txt || data/local/lexicon.txt -ot "$lexicon_file" 
   echo "Preparing lexicon in data/local on" `date`
   echo ---------------------------------------------------------------------  
   local/make_lexicon_subset.sh $train_data_dir/transcription $lexicon_file data/local/filtered_lexicon.txt
+  phoneme_mapping=$(cat conf/sampa2ipa.txt|sed '/^;/d'|awk '{print $1, " = ", $2, ";"}' |tr '\n' ' ')
+  phoneme_mapping=$(echo $phoneme_mapping; echo $phoneme_mapping_overrides)
   local/prepare_lexicon.pl  --phonemap "$phoneme_mapping" \
     $lexiconFlags data/local/filtered_lexicon.txt data/local
 fi
@@ -91,6 +108,10 @@ if [[ ! -f data/train/wav.scp || data/train/wav.scp -ot "$train_data_dir" ]]; th
   echo "Preparing acoustic training lists in data/train on" `date`
   echo ---------------------------------------------------------------------
   mkdir -p data/train
+  # What are fragments? Frags include
+  # a) Mispronunciations. e.g. "representive" (mispron. word in audio) -> *representative* (word transcribed with the right spelling in text)
+  # b) Stumbling speech. e.g.  "to- tomorrow" (speaker stumbles midway in the word tomorrow) -> to- tomorrow (word transcribed up to the cut off point and hyphenated)
+  # c) Truncated words at the start or end of a recording. e.g. "tisfactory" (truncated word in audio) -> ~satisfactory (word transcribed w/o truncation but marked with a ~ to denote truncation)
   local/prepare_acoustic_training_data.pl \
     --vocab data/local/lexicon.txt --fragmentMarkers \-\*\~ \
     $train_data_dir data/train > data/train/skipped_utts.log  
@@ -255,7 +276,6 @@ if [ ! -f exp/tri5/.done ]; then
     $numLeavesSAT $numGaussSAT data/train data/lang exp/tri4_ali exp/tri5
   touch exp/tri5/.done
 fi
-exit 1;
 
 ################################################################################
 # Ready to start SGMM training
